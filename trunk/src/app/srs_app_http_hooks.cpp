@@ -452,10 +452,13 @@ int SrsHttpHooks::do_post(std::string url, std::string req, int& code, string& r
     }
     
     // parse string res to json.
-    SrsJsonAny* info = SrsJsonAny::loads((char*)res.c_str());
+    char *resString = new char[res.length()+1];
+    strcpy(resString,res.c_str());
+    SrsJsonAny* info = SrsJsonAny::loads(resString);
     if (!info) {
         ret = ERROR_HTTP_DATA_INVALID;
-        srs_error("invalid response %s. ret=%d", res.c_str(), ret);
+        srs_error("invalid response %s. ret=%d", resString, ret);
+        delete []resString;
         return ret;
     }
     SrsAutoFree(SrsJsonAny, info);
@@ -465,8 +468,10 @@ int SrsHttpHooks::do_post(std::string url, std::string req, int& code, string& r
         if (res != SRS_HTTP_RESPONSE_OK) {
             ret = ERROR_HTTP_DATA_INVALID;
             srs_error("invalid response number %s. ret=%d", res.c_str(), ret);
+            delete []resString;
             return ret;
         }
+        delete []resString;
         return ret;
     }
     
@@ -476,15 +481,17 @@ int SrsHttpHooks::do_post(std::string url, std::string req, int& code, string& r
     if ((res_code = res_info->ensure_property_integer("code")) == NULL) {
         ret = ERROR_RESPONSE_CODE;
         srs_error("invalid response without code, ret=%d", ret);
+        delete []resString;
         return ret;
     }
 
     if ((res_code->to_integer()) != ERROR_SUCCESS) {
         ret = ERROR_RESPONSE_CODE;
         srs_error("error response code=%d. ret=%d", res_code->to_integer(), ret);
+        delete []resString;
         return ret;
     }
-
+    delete []resString;
     return ret;
 }
 
